@@ -9,9 +9,11 @@ exec 2> >(tee -a ${LOG} >&2)
 
 set -x
 
+date
+
 #### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
 mkdir -m 700 /root/.ssh
-curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > .ssh/authorized_keys
+curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > /root/.ssh/authorized_keys
 
 # keep lots of system logs
 apt-get update
@@ -20,15 +22,19 @@ apt-get update
 #apt-get purge -y ufw unattended-upgrades
 #rm -Rf /var/log/unattended-upgrades/
 sed -i 's/^\/\/Unattended-Upgrade.*/Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";/' /etc/apt/apt.conf.d/50unattended-upgrades
+systemctl restart unattended-upgrades
 
-#apt-get install -y cron-apt aptitude vim htop iftop tree auditd tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
-apt-get install -y cron-apt aptitude vim htop iftop tree tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
+date
+
+apt-get install -y cron-apt aptitude vim htop iftop tree auditd tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
+# Hacky, and probably still won't work, we're bumping into something terminating the script here during the package installs
+dpkg --configure -a
+apt-get install -y cron-apt aptitude vim htop iftop tree auditd tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
 
 # configure ssh access
 usermod -aG ssh root
 sed -i 's/^PermitRootLogin.*/PermitRootLogin without-password/' /etc/ssh/sshd_config
 printf "\nAllowGroups ssh" >> /etc/ssh/sshd_config
-
 systemctl restart sshd
 
 #### This only protects the host to the extent no one messes with iptables, 
