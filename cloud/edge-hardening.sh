@@ -30,7 +30,7 @@ apt-get install -y cron-apt
 apt-get install -y aptitude
 apt-get install -y iftop
 apt-get install -y tree
-apt-get install -y auditd
+#apt-get install -y auditd
 apt-get install -y bsd-mailx
 apt-get install -y ssmtp
 apt-get install -y logwatch
