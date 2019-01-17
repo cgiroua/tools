@@ -11,9 +11,11 @@ set -x
 
 # keep lots of system logs
 apt-get update
+apt-get install -y jq
 
-# Something is colliding with this script during startup, so let's wait it out
-sleep 60
+#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
+mkdir -m 700 /root/.ssh
+curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > /root/.ssh/authorized_keys
 
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
@@ -22,11 +24,15 @@ sleep 60
 sed -i 's/^\/\/Unattended-Upgrade.*/Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";/' /etc/apt/apt.conf.d/50unattended-upgrades
 systemctl restart unattended-upgrades
 
-apt-get install -y vim htop iftop tree auditd tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
-
-#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
-mkdir -m 700 /root/.ssh
-curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > /root/.ssh/authorized_keys
+apt-get install -y cron-apt
+apt-get install -y aptitude
+apt-get install -y iftop
+apt-get install -y tree
+apt-get install -y auditd
+apt-get install -y bsd-mailx
+apt-get install -y ssmtp
+apt-get install -y logwatch
+apt-get install -y ntp
 
 # configure ssh access
 usermod -aG ssh root
