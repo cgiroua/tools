@@ -3,7 +3,7 @@
 # Intended for Ubuntu 18 64bit base image on SL
 #
 
-LOG=postinstall.out
+LOG=/root/postinstall.out
 exec > >(tee -a ${LOG} )
 exec 2> >(tee -a ${LOG} >&2)
 
@@ -21,7 +21,8 @@ apt-get update
 #rm -Rf /var/log/unattended-upgrades/
 sed -i 's/^\/\/Unattended-Upgrade.*/Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";/' /etc/apt/apt.conf.d/50unattended-upgrades
 
-apt-get install -y cron-apt aptitude vim htop iftop tree auditd tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
+#apt-get install -y cron-apt aptitude vim htop iftop tree auditd tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
+apt-get install -y cron-apt aptitude vim htop iftop tree tcpdump bsd-mailx ssmtp jq logwatch ntp rsyslog
 
 # configure ssh access
 usermod -aG ssh root
