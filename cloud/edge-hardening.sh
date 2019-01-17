@@ -11,6 +11,7 @@ set -x
 
 # keep lots of system logs
 apt-get update
+apt-get install -y jq
 
 #### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
 mkdir -m 700 /root/.ssh
