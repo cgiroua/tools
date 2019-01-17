@@ -3,12 +3,17 @@
 # Intended for Ubuntu 18 64bit base image on SL
 #
 
-exec 3>&1 4>&2
-trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>/root/postinstall.out 2>&1
+LOG=postinstall.out
+exec > >(tee -a ${LOG} )
+exec 2> >(tee -a ${LOG} >&2)
 
 set -x
 
+#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
+mkdir -m 700 /root/.ssh
+curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > .ssh/authorized_keys
+
+# keep lots of system logs
 apt-get update
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
@@ -51,11 +56,6 @@ EOF
 
 /etc/network/if-pre-up.d/iptables
 
-#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
-mkdir -m 700 /root/.ssh
-curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > .ssh/authorized_keys
-
-# keep lots of system logs
 sed -i 's/rotate.*/rotate 20/' /etc/logrotate.d/rsyslog
 
 echo "update -o quiet=2" > /etc/cron-apt/action.d/0-update
