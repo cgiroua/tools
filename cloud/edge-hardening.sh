@@ -16,7 +16,9 @@ set -x
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd ntp
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd ntp
 
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
@@ -24,11 +26,6 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y jq iftop tre
 #rm -Rf /var/log/unattended-upgrades/
 sed -i 's/^\/\/Unattended-Upgrade.*/Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";/' /etc/apt/apt.conf.d/50unattended-upgrades
 systemctl restart unattended-upgrades
-
-
-#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
-mkdir -m 700 /root/.ssh
-curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > /root/.ssh/authorized_keys
 
 # configure ssh access
 usermod -aG ssh root
