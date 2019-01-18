@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Intended for Ubuntu 18 64bit base image on SL
+# Intended for Ubuntu 16 64bit base image on SL
 #
 
 LOG=/root/postinstall.out
@@ -9,8 +9,12 @@ exec 2> >(tee -a ${LOG} >&2)
 
 set -x
 
+# Setup docker repo
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
 export DEBIAN_FRONTEND=noninteractive
-apt-get update && apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp
+apt-get update && apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd ntp
 
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
@@ -55,11 +59,6 @@ COMMIT
 EOF
 /etc/network/if-pre-up.d/iptables
 
-# install docker
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-apt-get install -y docker-ce
-
 # Keep more syslogs
 sed -i 's/rotate.*/rotate 20/' /etc/logrotate.d/rsyslog
 systemctl restart rsyslog.service
@@ -75,11 +74,6 @@ systemctl restart rsyslog.service
 #UseSTARTTLS=YES
 #hostname=$(hostname -f)
 #EOF
-
-apt-get install -y ntp
-systemctl enable ntp && systemctl start ntp
-
-apt-get install -y auditd
 
 # configure auditd
 cp /etc/audit/rules.d/audit.rules /etc/audit/rules.d/audit.rules.orig
@@ -110,4 +104,6 @@ cat <<'EOF' > /etc/audit/rules.d/audit.rules
 -a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,open_by_handle_at -F exit=-EPERM -F auid>=500 -F auid!=4294967295 -F key=access
 -e 2
 EOF
+
+systemctl enable ntp && systemctl start ntp
 systemctl enable auditd && systemctl start auditd
