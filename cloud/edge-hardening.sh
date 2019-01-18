@@ -16,8 +16,7 @@ set -x
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get update && apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd ntp
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd ntp
 
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
