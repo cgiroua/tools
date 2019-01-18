@@ -3,9 +3,12 @@
 # Intended for Ubuntu 16 64bit base image on SL
 #
 
-LOG=/root/postinstall.out
-exec > >(tee -a ${LOG} )
-exec 2> >(tee -a ${LOG} >&2)
+#LOG=/root/postinstall.out
+#exec > >(tee -a ${LOG} )
+#exec 2> >(tee -a ${LOG} >&2)
+exec 3>&1 4>&2
+trap 'exec 2>&4 1>&3' 0 1 2 3
+exec 1>/root/postinstall.out 2>&1
 
 set -x
 
