@@ -9,7 +9,7 @@ exec 2> >(tee -a ${LOG} >&2)
 
 set -x
 
-DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive
 apt-get update && apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp
 
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
