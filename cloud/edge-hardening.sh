@@ -34,7 +34,7 @@ apt-get install -y tree
 apt-get install -y bsd-mailx
 apt-get install -y ssmtp
 apt-get install -y logwatch
-apt-get install -y ntp
+#apt-get install -y ntp
 
 # configure ssh access
 usermod -aG ssh root
