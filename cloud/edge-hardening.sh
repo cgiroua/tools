@@ -9,13 +9,8 @@ exec 2> >(tee -a ${LOG} >&2)
 
 set -x
 
-# keep lots of system logs
-apt-get update
-apt-get install -y jq
-
-#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
-mkdir -m 700 /root/.ssh
-curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > /root/.ssh/authorized_keys
+DEBIAN_FRONTEND=noninteractive
+apt-get update && apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp
 
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
@@ -24,17 +19,10 @@ curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUs
 sed -i 's/^\/\/Unattended-Upgrade.*/Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";/' /etc/apt/apt.conf.d/50unattended-upgrades
 systemctl restart unattended-upgrades
 
-export DEBIAN_FRONTEND=noninteractive
-#apt-get install -y cron-apt aptitude iftop tree auditd bsd-mailx ssmtp jq logwatch ntp
-apt-get install -y cron-apt
-apt-get install -y aptitude
-apt-get install -y iftop
-apt-get install -y tree
-#apt-get install -y auditd
-apt-get install -y bsd-mailx
-apt-get install -y ssmtp
-apt-get install -y logwatch
-#apt-get install -y ntp
+
+#### Workaround for ssh-keys authorize_keys while -k doesn't work with cloud CLI
+mkdir -m 700 /root/.ssh
+curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata.json 2>/dev/null | tr -d \'\\ 2>/dev/null | tail -c +2 | head -c -1 | jq -M -r '.["cg-key"], .["my-key"]' | sort -u > /root/.ssh/authorized_keys
 
 # configure ssh access
 usermod -aG ssh root
@@ -65,22 +53,15 @@ cat <<'EOF' > /etc/iptables.rules
 -A INPUT -i eth1 -j DROP
 COMMIT
 EOF
-
 /etc/network/if-pre-up.d/iptables
 
+# install docker
+curl https://get.docker.com/ | sh
+systemctl enable docker && systemctl restart docker
+
+# Keep more syslogs
 sed -i 's/rotate.*/rotate 20/' /etc/logrotate.d/rsyslog
-
-echo "update -o quiet=2" > /etc/cron-apt/action.d/0-update
-cat <<'EOF' > /etc/cron-apt/action.d/5-security
-autoclean -q -y
-dist-upgrade -q -y -o APT::Get::Show-Upgraded=true \
-                   -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/security.sources.list \
-                   -o DPkg::Options::=--force-confdef \
-                   -o DPkg::Options::=--force-confold
-EOF
-
-cat /etc/apt/sources.list | grep xenial-security > /etc/apt/sources.list.d/security.sources.list
-sed -i '/security/d' /etc/apt/sources.list
+systemctl restart rsyslog.service
 
 #### Get this working with our infrastructure
 # configure mail (for alerts)
@@ -94,7 +75,10 @@ sed -i '/security/d' /etc/apt/sources.list
 #hostname=$(hostname -f)
 #EOF
 
+apt-get install -y ntp
 systemctl enable ntp && systemctl start ntp
+
+apt-get install -y auditd
 
 # configure auditd
 cp /etc/audit/rules.d/audit.rules /etc/audit/rules.d/audit.rules.orig
@@ -126,23 +110,3 @@ cat <<'EOF' > /etc/audit/rules.d/audit.rules
 -e 2
 EOF
 systemctl enable auditd && systemctl start auditd
-
-# install and configure docker with syslog forwarding
-curl https://get.docker.com/ | sh
-sed -i 's/.*DOCKER_OPTS=.*/DOCKER_OPTS="--log-driver=syslog"/' /etc/default/docker
-DOCKER_SERVICE_FILE='/lib/systemd/system/docker.service'
-grep -q 'DOCKER_OPTS$' $DOCKER_SERVICE_FILE || sed -i '/^ExecStart=/ s/$/ $DOCKER_OPTS/' $DOCKER_SERVICE_FILE
-sed -i '/^EnvironmentFile=/d' $DOCKER_SERVICE_FILE
-sed -i 's/^ExecReload=/EnvironmentFile=\/etc\/default\/docker\nExecReload=/' $DOCKER_SERVICE_FILE
-
-cat <<'EOF' > /etc/rsyslog.d/22-docker.conf
-$template DynamicContainerFile,"/var/log/%syslogtag:R,ERE,1,DFLT:.*docker/([^\[]+)--end%.log"
-
-:syslogtag, startswith, "docker/" -?DynamicContainerFile
-& stop
-:syslogtag, startswith, "docker" -/var/log/docker.log
-& stop
-EOF
-
-systemctl enable docker && systemctl restart docker
-systemctl restart rsyslog.service
