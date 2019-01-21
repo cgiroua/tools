@@ -18,8 +18,9 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd ntp
+apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce auditd
 
+echo "After Install"
 #### On the fence about purging this, or enabling it and adding auto kernel cleanup ... Purge is better for stable
 #### dev environments, enabled is obviously better for security, since this is a hardening script, let's keep it
 #apt-get purge -y ufw unattended-upgrades
@@ -32,6 +33,8 @@ usermod -aG ssh root
 sed -i 's/^PermitRootLogin.*/PermitRootLogin without-password/' /etc/ssh/sshd_config
 printf "\nAllowGroups ssh" >> /etc/ssh/sshd_config
 systemctl restart sshd
+
+echo "After ssh"
 
 #### This only protects the host to the extent no one messes with iptables, 
 #### docker default port mappings override this (-p 80:80 will get through ... don't use that!)
@@ -57,6 +60,8 @@ cat <<'EOF' > /etc/iptables.rules
 COMMIT
 EOF
 /etc/network/if-pre-up.d/iptables
+
+echo "After iptables"
 
 # Keep more syslogs
 sed -i 's/rotate.*/rotate 20/' /etc/logrotate.d/rsyslog
@@ -104,5 +109,9 @@ cat <<'EOF' > /etc/audit/rules.d/audit.rules
 -e 2
 EOF
 
+echo "After auditd"
+
 systemctl enable ntp && systemctl start ntp
 systemctl enable auditd && systemctl start auditd
+
+echo "End"
