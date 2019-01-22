@@ -30,6 +30,7 @@ systemctl restart unattended-upgrades
 # configure ssh access
 usermod -aG ssh root
 sed -i 's/^PermitRootLogin.*/PermitRootLogin without-password/' /etc/ssh/sshd_config
+sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 printf "\nAllowGroups ssh" >> /etc/ssh/sshd_config
 systemctl restart sshd
 
@@ -57,6 +58,9 @@ cat <<'EOF' > /etc/iptables.rules
 COMMIT
 EOF
 /etc/network/if-pre-up.d/iptables
+
+# Restart docker after messing with iptables
+systemctl restart docker.service
 
 # Keep more syslogs
 sed -i 's/rotate.*/rotate 20/' /etc/logrotate.d/rsyslog
