@@ -27,6 +27,9 @@ apt-get install -y jq iftop tree bsd-mailx ssmtp jq logwatch ntp docker-ce audit
 sed -i 's/^\/\/Unattended-Upgrade.*/Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";/' /etc/apt/apt.conf.d/50unattended-upgrades
 systemctl restart unattended-upgrades
 
+# Fixing cloud GRUB
+sed -i -e 's/LABEL=cloudimg-rootfs/(hd0)/' /boot/grub/menu.lst
+
 # configure ssh access
 usermod -aG ssh root
 sed -i 's/^PermitRootLogin.*/PermitRootLogin without-password/' /etc/ssh/sshd_config
